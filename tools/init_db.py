@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS User (
     createdAt TEXT NOT NULL,
     updatedAt TEXT NOT NULL
 );
-CREATE UNIQUE INDEX IF NOT EXISTS User_username_idx ON User(username);
+CREATE UNIQUE INDEX IF NOT EXISTS User_username_idx ON User(username) WHERE active = 1;
 
 CREATE TABLE IF NOT EXISTS UserDepartment (
     userId TEXT NOT NULL REFERENCES User(id),
