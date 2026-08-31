@@ -27,7 +27,10 @@
   <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(160px, 1fr));gap:12px;margin-top:12px;">
     {% for entry in entries %}
     <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">
-      <img src="{{ url_for('files.workstation_photo', entry_id=entry.id) }}" alt="" style="width:100%;height:140px;object-fit:cover;display:block;">
+      <button type="button" class="js-zoom-open" data-src="{{ url_for('files.workstation_photo', entry_id=entry.id) }}"
+              style="display:block;width:100%;padding:0;border:0;background:none;cursor:zoom-in;">
+        <img src="{{ url_for('files.workstation_photo', entry_id=entry.id) }}" alt="" style="width:100%;height:140px;object-fit:cover;display:block;">
+      </button>
       <div style="padding:8px;">
         <div style="font-size:0.8rem;font-weight:600;">{{ entry.createdAt[:10] }} &middot; {{ entry.createdAt[11:16] }}</div>
         <div class="text-muted" style="font-size:0.78rem;">by {{ entry.createdByName }}</div>
@@ -37,6 +40,13 @@
   </div>
   {% endif %}
 </div>
+
+<dialog id="zoom-dialog" class="zoom-dialog">
+  <button type="button" class="zoom-close js-zoom-close" aria-label="Close">&times;</button>
+  <div class="zoom-scroll js-zoom-scroll">
+    <img class="js-zoom-image" alt="Workstation photo, enlarged">
+  </div>
+</dialog>
 
 {% if can_log %}
 <dialog id="entry-dialog" data-username="{{ current_user.name if current_user else '' }}" style="border-radius:10px;border:1px solid var(--border);padding:0;max-width:400px;width:90%;">
@@ -92,4 +102,35 @@
   });
 </script>
 {% endif %}
+<script>
+  (function () {
+    const zoomDialog = document.getElementById("zoom-dialog");
+    if (!zoomDialog) return;
+    const zoomImage = zoomDialog.querySelector(".js-zoom-image");
+
+    document.addEventListener("click", (e) => {
+      const opener = e.target.closest(".js-zoom-open");
+      if (opener) {
+        zoomImage.src = opener.getAttribute("data-src");
+        zoomImage.classList.remove("zoomed");
+        zoomDialog.showModal();
+        return;
+      }
+      if (e.target.closest(".js-zoom-close")) {
+        zoomDialog.close();
+        return;
+      }
+      if (e.target === zoomImage) {
+        // Tap/click toggles 2x zoom -- pinch-to-zoom also works natively
+        // since we don't block default touch behavior on the image.
+        zoomImage.classList.toggle("zoomed");
+      }
+    });
+
+    zoomDialog.addEventListener("click", (e) => {
+      // Clicking the dialog backdrop itself (not its content) closes it.
+      if (e.target === zoomDialog) zoomDialog.close();
+    });
+  })();
+</script>
 {% endblock %}
