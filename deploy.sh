@@ -21,6 +21,10 @@ echo "-- Ensuring database schema --"
 "$VENV/bin/python3" tools/init_db.py
 echo "   done"
 
+echo "-- Applying migrations --"
+"$VENV/bin/python3" tools/migrate_all.py
+echo "   done"
+
 echo "-- Restarting app --"
 mkdir -p tmp
 touch tmp/restart.txt
