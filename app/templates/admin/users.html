@@ -8,11 +8,20 @@
 
 <div class="card">
   <h2>Add Department</h2>
-  <form method="post" action="{{ url_for('admin.departments_create') }}" class="flex-row" style="align-items:flex-end;">
+  <form method="post" action="{{ url_for('admin.departments_create') }}" class="flex-row" style="align-items:flex-end;" id="dept-create-form">
     <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-    <label class="field" style="width:auto;"><span>Name</span><input type="text" name="name" required style="width:200px;"></label>
+    <label class="field" style="width:auto;">
+      <span>Name</span>
+      <select id="dept-name-select" style="width:200px;">
+        <option value="">Choose from OmniStock&hellip;</option>
+        {% for n in dept_suggestions %}<option value="{{ n }}">{{ n }}</option>{% endfor %}
+        <option value="__custom__">+ Custom name&hellip;</option>
+      </select>
+      <input type="text" name="name" id="dept-name-custom" placeholder="Department name" style="width:200px;margin-top:6px;" hidden>
+    </label>
     <button type="submit" class="btn btn-primary">Add</button>
   </form>
+  <p class="text-muted" style="font-size:0.78rem;margin-top:6px;margin-bottom:0;">Suggestions are pulled from OmniStock's department list, so names stay consistent between the two apps &mdash; pick "+ Custom name" for anything not listed.</p>
   <div class="flex-row" style="margin-top:12px;">
     {% for d in departments %}
     <form method="post" action="{{ url_for('admin.departments_delete', department_id=d.id) }}">
@@ -22,6 +31,38 @@
     {% endfor %}
   </div>
 </div>
+
+<script>
+  (function () {
+    const select = document.getElementById("dept-name-select");
+    const custom = document.getElementById("dept-name-custom");
+    const form = document.getElementById("dept-create-form");
+    if (!select) return;
+
+    function sync() {
+      if (select.value === "__custom__") {
+        custom.hidden = false;
+        custom.name = "name";
+        select.removeAttribute("name");
+        custom.required = true;
+      } else {
+        custom.hidden = true;
+        custom.required = false;
+        custom.removeAttribute("name");
+        select.name = "name";
+      }
+    }
+    select.addEventListener("change", sync);
+    sync();
+
+    form.addEventListener("submit", (e) => {
+      if (select.value === "" && custom.hidden) {
+        e.preventDefault();
+        alert("Choose a department name.");
+      }
+    });
+  })();
+</script>
 
 <div class="card">
   <h2>Add User</h2>
