@@ -34,6 +34,7 @@
       <div style="padding:8px;">
         <div style="font-size:0.8rem;font-weight:600;">{{ entry.createdAt[:10] }} &middot; {{ entry.createdAt[11:16] }}</div>
         <div class="text-muted" style="font-size:0.78rem;">by {{ entry.createdByName }}</div>
+        {% if entry.comment %}<div style="font-size:0.78rem;margin-top:4px;">{{ entry.comment }}</div>{% endif %}
       </div>
     </div>
     {% endfor %}
@@ -82,6 +83,11 @@
 
       <canvas class="js-camera-canvas" hidden></canvas>
     </div>
+
+    <label class="field">
+      <span>Comment (optional)</span>
+      <textarea name="comment" rows="2" placeholder="e.g. counter needs repainting"></textarea>
+    </label>
 
     <div class="flex-row" style="justify-content:flex-end;margin-top:12px;">
       <button type="button" class="btn btn-sm js-close-dialog">Cancel</button>

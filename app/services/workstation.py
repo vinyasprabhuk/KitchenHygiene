@@ -13,17 +13,20 @@ from app.services import audit, storage
 
 
 def create_photo(conn: sqlite3.Connection, actor: dict, department_id: str,
-                  photo_bytes: bytes, photo_filename: str, photo_mime_type: str | None) -> str:
+                  photo_bytes: bytes, photo_filename: str, photo_mime_type: str | None,
+                  comment: str | None = None) -> str:
     if not photo_bytes:
         raise ValueError("Photo is required")
 
     saved = storage.save(photo_bytes, photo_filename)
     entry_id = new_id()
     created_at = now_db()
+    comment = comment.strip() if comment else None
     conn.execute(
-        "INSERT INTO WorkstationPhoto (id, departmentId, photoPath, photoMimeType, createdById, createdAt) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
-        (entry_id, department_id, saved["filePath"], photo_mime_type or "image/jpeg", actor["id"], created_at),
+        "INSERT INTO WorkstationPhoto (id, departmentId, photoPath, photoMimeType, comment, createdById, createdAt) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (entry_id, department_id, saved["filePath"], photo_mime_type or "image/jpeg",
+         comment, actor["id"], created_at),
     )
 
     current_month = created_at[:7]  # "YYYY-MM" prefix

@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS WorkstationPhoto (
     departmentId TEXT NOT NULL REFERENCES Department(id),
     photoPath TEXT NOT NULL,
     photoMimeType TEXT NOT NULL,
+    comment TEXT,
     createdById TEXT NOT NULL REFERENCES User(id),
     createdAt TEXT NOT NULL
 );
