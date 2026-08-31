@@ -5,6 +5,7 @@ from flask import Blueprint, Response, abort, flash, g, redirect, render_templat
 from app.security import login_required
 from app.services import issues as issues_service
 from app.services import storage
+from app.services import workstation
 from app.services.department_scope import get_user_departments
 
 bp = Blueprint("issues", __name__)
@@ -46,6 +47,10 @@ def create():
         photo_bytes = photo.read() if photo and photo.filename else b""
         fn = photo.filename if photo else ""
         mime = photo.mimetype if photo else None
+        # Same capture does double duty: lands in the routine monthly photo
+        # log same as a normal capture would, AND raises a persistent issue
+        # -- there's no separate "Save Photo" step for Manager anymore.
+        workstation.create_photo(conn, g.user, department_id, photo_bytes, fn, mime, comment)
         issues_service.create_issue(conn, g.user, department_id, comment, photo_bytes, fn, mime)
         flash("Issue created.", "success")
     except ValueError as e:
