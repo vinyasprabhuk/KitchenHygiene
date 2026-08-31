@@ -5,7 +5,7 @@ inserted if no users exist yet.
 
 Usage:
     .venv/bin/python tools/init_db.py [path-to-db]
-    .venv/bin/python tools/init_db.py --admin-phone 9876543210 --admin-pin 1234
+    .venv/bin/python tools/init_db.py --admin-username admin --admin-pin 1234
 """
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS Department_name_idx ON Department(name);
 CREATE TABLE IF NOT EXISTS User (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
-    phone TEXT NOT NULL,
+    username TEXT NOT NULL,
     pinHash TEXT NOT NULL,
     role TEXT NOT NULL,
     departmentId TEXT REFERENCES Department(id),
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS User (
     createdAt TEXT NOT NULL,
     updatedAt TEXT NOT NULL
 );
-CREATE UNIQUE INDEX IF NOT EXISTS User_phone_idx ON User(phone);
+CREATE UNIQUE INDEX IF NOT EXISTS User_username_idx ON User(username);
 
 CREATE TABLE IF NOT EXISTS WorkstationPhoto (
     id TEXT PRIMARY KEY,
@@ -53,10 +53,22 @@ CREATE TABLE IF NOT EXISTS WorkstationPhoto (
 );
 CREATE INDEX IF NOT EXISTS WorkstationPhoto_department_month_idx
     ON WorkstationPhoto(departmentId, createdAt);
+
+CREATE TABLE IF NOT EXISTS AuditLog (
+    id TEXT PRIMARY KEY,
+    userId TEXT,
+    userName TEXT NOT NULL,
+    action TEXT NOT NULL,
+    entity TEXT NOT NULL,
+    entityId TEXT,
+    details TEXT,
+    createdAt TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS AuditLog_createdAt_idx ON AuditLog(createdAt);
 """
 
 
-def init(db_path: Path, admin_phone: str | None, admin_pin: str | None) -> None:
+def init(db_path: Path, admin_username: str | None, admin_pin: str | None) -> None:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(db_path)
     conn.executescript(SCHEMA)
@@ -64,16 +76,16 @@ def init(db_path: Path, admin_phone: str | None, admin_pin: str | None) -> None:
 
     user_count = conn.execute("SELECT COUNT(*) FROM User").fetchone()[0]
     if user_count == 0:
-        phone = admin_phone or "9999999999"
+        username = admin_username or "admin"
         pin = admin_pin or "1234"
         ts = now_db()
         conn.execute(
-            "INSERT INTO User (id, name, phone, pinHash, role, departmentId, active, createdAt, updatedAt) "
+            "INSERT INTO User (id, name, username, pinHash, role, departmentId, active, createdAt, updatedAt) "
             "VALUES (?, 'Admin', ?, ?, 'ADMIN', NULL, 1, ?, ?)",
-            (new_id(), phone, hash_password(pin), ts, ts),
+            (new_id(), username, hash_password(pin), ts, ts),
         )
         conn.commit()
-        print(f"Seeded admin -- phone: {phone}, PIN: {pin} (change this after first login)")
+        print(f"Seeded admin -- username: {username}, PIN: {pin} (change this after first login)")
     else:
         print("Users already exist -- skipped seeding.")
 
@@ -84,7 +96,7 @@ def init(db_path: Path, admin_phone: str | None, admin_pin: str | None) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("db_path", nargs="?", default=str(BASE_DIR / "instance" / "app.db"))
-    parser.add_argument("--admin-phone")
+    parser.add_argument("--admin-username")
     parser.add_argument("--admin-pin")
     args = parser.parse_args()
-    init(Path(args.db_path), args.admin_phone, args.admin_pin)
+    init(Path(args.db_path), args.admin_username, args.admin_pin)

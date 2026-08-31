@@ -47,7 +47,7 @@ def capture():
         photo_bytes = photo.read() if photo and photo.filename else b""
         fn = photo.filename if photo else ""
         mime = photo.mimetype if photo else None
-        workstation.create_photo(conn, g.user["id"], department_id, photo_bytes, fn, mime)
+        workstation.create_photo(conn, g.user, department_id, photo_bytes, fn, mime)
         flash("Photo captured.", "success")
     except ValueError as e:
         flash(str(e), "error")

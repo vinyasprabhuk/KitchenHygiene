@@ -34,11 +34,11 @@ def create_app(config_object: str = "config.Config") -> Flask:
         g.user = None
         if user_id:
             row = g.conn.execute(
-                "SELECT id, name, phone, role, departmentId, active FROM User WHERE id = ?", (user_id,)
+                "SELECT id, name, username, role, departmentId, active FROM User WHERE id = ?", (user_id,)
             ).fetchone()
             if row and row["active"]:
                 g.user = {
-                    "id": row["id"], "name": row["name"], "phone": row["phone"],
+                    "id": row["id"], "name": row["name"], "username": row["username"],
                     "role": row["role"], "departmentId": row["departmentId"],
                 }
             else:

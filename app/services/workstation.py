@@ -9,10 +9,10 @@ import sqlite3
 
 from app.dates import now_db
 from app.db import new_id
-from app.services import storage
+from app.services import audit, storage
 
 
-def create_photo(conn: sqlite3.Connection, user_id: str, department_id: str,
+def create_photo(conn: sqlite3.Connection, actor: dict, department_id: str,
                   photo_bytes: bytes, photo_filename: str, photo_mime_type: str | None) -> str:
     if not photo_bytes:
         raise ValueError("Photo is required")
@@ -23,7 +23,7 @@ def create_photo(conn: sqlite3.Connection, user_id: str, department_id: str,
     conn.execute(
         "INSERT INTO WorkstationPhoto (id, departmentId, photoPath, photoMimeType, createdById, createdAt) "
         "VALUES (?, ?, ?, ?, ?, ?)",
-        (entry_id, department_id, saved["filePath"], photo_mime_type or "image/jpeg", user_id, created_at),
+        (entry_id, department_id, saved["filePath"], photo_mime_type or "image/jpeg", actor["id"], created_at),
     )
 
     current_month = created_at[:7]  # "YYYY-MM" prefix
@@ -31,6 +31,7 @@ def create_photo(conn: sqlite3.Connection, user_id: str, department_id: str,
         "DELETE FROM WorkstationPhoto WHERE departmentId = ? AND substr(createdAt, 1, 7) != ?",
         (department_id, current_month),
     )
+    audit.write(conn, actor, "PHOTO_CAPTURED", "WorkstationPhoto", entry_id, {"departmentId": department_id})
     conn.commit()
     return entry_id
 

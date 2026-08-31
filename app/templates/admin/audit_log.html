@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Audit Log - Kitchen Hygiene{% endblock %}
+{% block content %}
+<div class="flex-row" style="justify-content:space-between;">
+  <h1>Audit Log</h1>
+  <a href="{{ url_for('admin.users') }}" class="btn btn-sm">&larr; Back to Admin</a>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>When</th><th>Who</th><th>Action</th><th>Entity</th><th>Details</th></tr></thead>
+      <tbody>
+        {% for e in entries %}
+        <tr>
+          <td class="text-muted" style="white-space:nowrap;">{{ e.createdAt[:10] }} {{ e.createdAt[11:16] }}</td>
+          <td>{{ e.userName }}</td>
+          <td><span class="badge badge-muted">{{ e.action }}</span></td>
+          <td>{{ e.entity }}{% if e.entityId %} <span class="text-muted" style="font-size:0.75rem;">{{ e.entityId[:8] }}</span>{% endif %}</td>
+          <td class="text-muted" style="font-size:0.78rem;">{{ e.details or '' }}</td>
+        </tr>
+        {% endfor %}
+        {% if entries | length == 0 %}
+        <tr><td colspan="5" class="text-muted">No activity logged yet.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

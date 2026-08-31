@@ -4,6 +4,7 @@ from flask import Blueprint, flash, g, redirect, render_template, request, url_f
 
 from app.security import require_role
 from app.services import admin as admin_service
+from app.services import audit
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -36,7 +37,7 @@ def users_create():
     role = request.form.get("role", "DEPARTMENT_LEAD")
     try:
         admin_service.create_user(
-            g.conn, request.form.get("name", ""), request.form.get("phone", ""),
+            g.conn, g.user, request.form.get("name", ""), request.form.get("username", ""),
             request.form.get("pin", ""), role, request.form.get("departmentId") or None,
         )
         flash("User created.", "success")
@@ -48,7 +49,7 @@ def users_create():
 @bp.route("/users/<user_id>/deactivate", methods=["POST"])
 @require_role("ADMIN")
 def users_deactivate(user_id: str):
-    admin_service.deactivate_user(g.conn, user_id)
+    admin_service.deactivate_user(g.conn, g.user, user_id)
     flash("User deactivated.", "success")
     return redirect(url_for("admin.users"))
 
@@ -57,7 +58,7 @@ def users_deactivate(user_id: str):
 @require_role("ADMIN")
 def users_reset_pin(user_id: str):
     try:
-        admin_service.reset_user_pin(g.conn, user_id, request.form.get("newPin", ""))
+        admin_service.reset_user_pin(g.conn, g.user, user_id, request.form.get("newPin", ""))
         flash("PIN reset.", "success")
     except ValueError as e:
         flash(str(e), "error")
@@ -68,7 +69,7 @@ def users_reset_pin(user_id: str):
 @require_role("ADMIN")
 def departments_create():
     try:
-        admin_service.create_department(g.conn, request.form.get("name", ""))
+        admin_service.create_department(g.conn, g.user, request.form.get("name", ""))
         flash("Department added.", "success")
     except ValueError as e:
         flash(str(e), "error")
@@ -79,8 +80,15 @@ def departments_create():
 @require_role("ADMIN")
 def departments_delete(department_id: str):
     try:
-        admin_service.delete_department(g.conn, department_id)
+        admin_service.delete_department(g.conn, g.user, department_id)
         flash("Department deleted.", "success")
     except ValueError as e:
         flash(str(e), "error")
     return redirect(url_for("admin.users"))
+
+
+@bp.route("/audit-log")
+@require_role("ADMIN")
+def audit_log():
+    entries = audit.recent(g.conn)
+    return render_template("admin/audit_log.html", entries=entries)
