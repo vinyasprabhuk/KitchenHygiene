@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from flask import Blueprint, flash, g, redirect, render_template, request, url_for
 
-from app.reference_data import OMNISTOCK_DEPARTMENTS
+from app.reference_data import DEPARTMENT_SUGGESTIONS
 from app.security import require_role
 from app.services import admin as admin_service
 from app.services import audit
@@ -27,7 +27,7 @@ def users():
     ).fetchall()
     dept_rows = conn.execute("SELECT id, name FROM Department WHERE active = 1 ORDER BY name ASC").fetchall()
     existing_names = {d["name"] for d in dept_rows}
-    dept_suggestions = [n for n in OMNISTOCK_DEPARTMENTS if n not in existing_names]
+    dept_suggestions = [n for n in DEPARTMENT_SUGGESTIONS if n not in existing_names]
     return render_template(
         "admin/users.html", users=[dict(r) for r in user_rows],
         departments=[dict(r) for r in dept_rows], roles=admin_service.ROLES,

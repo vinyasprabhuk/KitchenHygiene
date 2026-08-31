@@ -1,16 +1,17 @@
 """
-Reference department names, pulled once from OmniStock's live Department
-table (inventory.mokshamveg.com) so Kitchen Hygiene's Add Department form
-can offer the same names instead of admins retyping/mistyping them.
+Suggested department names for the Add Department dropdown: OmniStock's
+current department list (inventory.mokshamveg.com), plus a couple of
+hygiene-specific locations that aren't in OmniStock (since OmniStock only
+tracks stock/requirement departments, not every physical space).
 
 This is a static snapshot, not a live link to OmniStock -- Kitchen Hygiene
 stays a fully independent app (own database, no runtime dependency on
-OmniStock being up). Re-run the same query there and update this list by
-hand if OmniStock's departments change.
+OmniStock being up). Update this list by hand if OmniStock's departments
+change or more locations need adding.
 """
 from __future__ import annotations
 
-OMNISTOCK_DEPARTMENTS = [
+DEPARTMENT_SUGGESTIONS = [
     "CHINESE",
     "Chaat",
     "COFFEE AND JUICE",
@@ -22,4 +23,6 @@ OMNISTOCK_DEPARTMENTS = [
     "Parotta & Chapathi",
     "SOUTH INDIAN",
     "STAFF MENU",
+    "Restaurant",
+    "Second Floor Staff Canteen",
 ]
