@@ -70,7 +70,7 @@
     <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
     <label class="field" style="width:auto;"><span>Name</span><input type="text" name="name" required style="width:160px;"></label>
     <label class="field" style="width:auto;"><span>Username</span><input type="text" name="username" required style="width:140px;"></label>
-    <label class="field" style="width:auto;"><span>PIN</span><input type="text" inputmode="numeric" pattern="[0-9]{4,6}" name="pin" required style="width:100px;"></label>
+    <label class="field" style="width:auto;"><span>PIN</span><input type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" name="pin" required style="width:100px;"></label>
     <label class="field" style="width:auto;">
       <span>Role</span>
       <select name="role" style="width:auto;">{% for r in roles %}<option value="{{ r }}" {{ 'selected' if r == 'DEPARTMENT_LEAD' else '' }}>{{ r }}</option>{% endfor %}</select>
@@ -126,7 +126,7 @@
           <td>
             <form method="post" action="{{ url_for('admin.users_reset_pin', user_id=u.id) }}" class="flex-row" style="gap:4px;">
               <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-              <input type="text" inputmode="numeric" pattern="[0-9]{4,6}" name="newPin" placeholder="New PIN" style="width:90px;">
+              <input type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" name="newPin" placeholder="New PIN" style="width:90px;">
               <button type="submit" class="btn btn-sm">Reset</button>
             </form>
           </td>

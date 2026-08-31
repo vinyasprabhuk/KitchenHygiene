@@ -9,7 +9,7 @@ from app.security import hash_password
 from app.services import audit
 
 ROLES = ["ADMIN", "MANAGER", "DEPARTMENT_LEAD"]
-PIN_RE = re.compile(r"^\d{4,6}$")
+PIN_RE = re.compile(r"^\d{4}$")
 DEPARTMENT_ASSIGNABLE_ROLES = ("DEPARTMENT_LEAD", "MANAGER")
 
 
@@ -47,7 +47,7 @@ def create_user(conn: sqlite3.Connection, actor: dict, name: str, username: str,
     if not name or not username:
         raise ValueError("Name and username are required")
     if not PIN_RE.match(pin):
-        raise ValueError("PIN must be 4-6 digits")
+        raise ValueError("PIN must be exactly 4 digits")
     if role not in ROLES:
         raise ValueError(f"Invalid role: {role}")
     if role == "DEPARTMENT_LEAD" and not department_ids:
@@ -124,7 +124,7 @@ def purge_user(conn: sqlite3.Connection, actor: dict, user_id: str) -> None:
 
 def reset_user_pin(conn: sqlite3.Connection, actor: dict, user_id: str, new_pin: str) -> None:
     if not PIN_RE.match(new_pin):
-        raise ValueError("PIN must be 4-6 digits")
+        raise ValueError("PIN must be exactly 4 digits")
     conn.execute(
         "UPDATE User SET pinHash = ?, updatedAt = ? WHERE id = ?",
         (hash_password(new_pin), now_db(), user_id),

@@ -15,14 +15,13 @@
 
     <label class="field">
       <span>Username</span>
-      <input type="text" name="username" autocomplete="username" autofocus required>
+      <input type="text" name="username" id="username-input" autocomplete="username" autofocus required>
     </label>
 
     <div class="field">
       <span>PIN</span>
       <div class="pin-display" id="pin-display">
-        <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
-        <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+        <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
       </div>
       <div class="pin-pad">
         <button type="button" class="pin-key js-pin-key" data-digit="1">1</button>
@@ -39,17 +38,16 @@
         <button type="button" class="pin-key js-pin-backspace">&#9003;</button>
       </div>
     </div>
-
-    <button type="submit" class="btn btn-primary btn-block" style="margin-top:18px;">Sign in</button>
   </form>
 </div>
 
 <script>
   (function () {
-    const MAX_PIN = 6;
+    const PIN_LENGTH = 4;
     let pin = "";
     const display = document.getElementById("pin-display");
     const hiddenInput = document.getElementById("pin-value");
+    const usernameInput = document.getElementById("username-input");
     const form = document.getElementById("pin-login-form");
 
     function render() {
@@ -58,24 +56,25 @@
       hiddenInput.value = pin;
     }
 
-    document.querySelectorAll(".js-pin-key").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        if (pin.length < MAX_PIN) {
-          pin += btn.getAttribute("data-digit");
-          render();
+    function addDigit(digit) {
+      if (pin.length >= PIN_LENGTH) return;
+      pin += digit;
+      render();
+      if (pin.length === PIN_LENGTH) {
+        if (!usernameInput.value.trim()) {
+          usernameInput.reportValidity();
+          return;
         }
-      });
+        form.requestSubmit ? form.requestSubmit() : form.submit();
+      }
+    }
+
+    document.querySelectorAll(".js-pin-key").forEach((btn) => {
+      btn.addEventListener("click", () => addDigit(btn.getAttribute("data-digit")));
     });
     document.querySelector(".js-pin-backspace").addEventListener("click", () => {
       pin = pin.slice(0, -1);
       render();
-    });
-
-    form.addEventListener("submit", (e) => {
-      if (pin.length < 4) {
-        e.preventDefault();
-        alert("Enter your 4-6 digit PIN.");
-      }
     });
   })();
 </script>
