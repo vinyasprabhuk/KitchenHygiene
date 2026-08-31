@@ -8,12 +8,14 @@ from app.services.department_scope import effective_scope, list_departments, res
 
 bp = Blueprint("workstation", __name__)
 
+CAPTURE_ROLES = ("DEPARTMENT_LEAD", "MANAGER")
+
 
 @bp.route("/workstation")
 @login_required
 def index():
     conn = g.conn
-    can_log = g.user["role"] == "DEPARTMENT_LEAD"
+    can_log = g.user["role"] in CAPTURE_ROLES
     dept_param = request.args.get("departmentId")
 
     try:
@@ -35,8 +37,8 @@ def index():
 @bp.route("/workstation/capture", methods=["POST"])
 @login_required
 def capture():
-    if g.user["role"] != "DEPARTMENT_LEAD":
-        abort(403, description="Only Department Leads can capture photos")
+    if g.user["role"] not in CAPTURE_ROLES:
+        abort(403, description="Only Department Leads and Managers can capture photos")
 
     conn = g.conn
     photo = request.files.get("photo")

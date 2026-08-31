@@ -1,10 +1,10 @@
 """
-Department-scoping. ADMIN is always unrestricted. DEPARTMENT_LEAD is always
-scoped to whichever department(s) they're assigned (required, at least
-one). MANAGER is scoped only if explicitly assigned department(s) --
-useful for shift-based coverage (e.g. two managers each covering the same
-two locations on alternating shifts) -- otherwise defaults to unrestricted,
-same as before this existed.
+Department-scoping. ADMIN and MANAGER always have full visibility across
+every department -- MANAGER's assigned department(s), if any, only set
+which one they land on by default; it's a starting point, not a
+restriction, and they can switch to any department via the dropdown.
+DEPARTMENT_LEAD is the only role actually restricted -- always scoped to
+exactly the department(s) they're assigned (required, at least one).
 """
 from __future__ import annotations
 
@@ -26,38 +26,42 @@ def list_departments(conn: sqlite3.Connection) -> list[dict]:
 
 
 def effective_scope(conn: sqlite3.Connection, user: dict) -> list[dict] | None:
-    """None means unrestricted (every active department); a list means
-    scoped to exactly those departments (possibly empty, for a Department
-    Lead somehow left unassigned)."""
-    role = user["role"]
-    if role == "ADMIN":
-        return None
-    assigned = get_user_departments(conn, user["id"])
-    if role == "MANAGER" and not assigned:
-        return None
-    return assigned
+    """None means unrestricted (every active department is visible,
+    switchable); a list means restricted to exactly those departments.
+    Only DEPARTMENT_LEAD is ever restricted."""
+    if user["role"] == "DEPARTMENT_LEAD":
+        return get_user_departments(conn, user["id"])
+    return None
 
 
 def resolve_department(conn: sqlite3.Connection, user: dict,
                         requested_department_id: str | None = None) -> dict:
-    scope = effective_scope(conn, user)
+    role = user["role"]
 
-    if scope is None:
-        if requested_department_id:
-            row = conn.execute("SELECT id, name FROM Department WHERE id = ?", (requested_department_id,)).fetchone()
-            if row is None:
-                raise ValueError(f"Department not found: {requested_department_id}")
-            return {"departmentId": row["id"], "departmentName": row["name"]}
-        row = conn.execute(
-            "SELECT id, name FROM Department WHERE active = 1 ORDER BY name ASC LIMIT 1"
-        ).fetchone()
-        if row is None:
-            raise ValueError("No active department found -- create one in Admin first")
+    if role == "DEPARTMENT_LEAD":
+        scope = get_user_departments(conn, user["id"])
+        if not scope:
+            raise ValueError("Your account has no department assigned -- contact an admin")
+        allowed_ids = {d["id"] for d in scope}
+        target_id = requested_department_id if requested_department_id in allowed_ids else scope[0]["id"]
+        row = conn.execute("SELECT id, name FROM Department WHERE id = ?", (target_id,)).fetchone()
         return {"departmentId": row["id"], "departmentName": row["name"]}
 
-    if not scope:
-        raise ValueError("Your account has no department assigned -- contact an admin")
-    allowed_ids = {d["id"] for d in scope}
-    target_id = requested_department_id if requested_department_id in allowed_ids else scope[0]["id"]
-    row = conn.execute("SELECT id, name FROM Department WHERE id = ?", (target_id,)).fetchone()
+    # ADMIN / MANAGER: unrestricted. An explicit request wins; otherwise a
+    # Manager's assigned department (if any) is the preferred default, and
+    # everyone else falls back to the first active department overall.
+    if requested_department_id:
+        row = conn.execute("SELECT id, name FROM Department WHERE id = ?", (requested_department_id,)).fetchone()
+        if row is None:
+            raise ValueError(f"Department not found: {requested_department_id}")
+        return {"departmentId": row["id"], "departmentName": row["name"]}
+
+    if role == "MANAGER":
+        preferred = get_user_departments(conn, user["id"])
+        if preferred:
+            return {"departmentId": preferred[0]["id"], "departmentName": preferred[0]["name"]}
+
+    row = conn.execute("SELECT id, name FROM Department WHERE active = 1 ORDER BY name ASC LIMIT 1").fetchone()
+    if row is None:
+        raise ValueError("No active department found -- create one in Admin first")
     return {"departmentId": row["id"], "departmentName": row["name"]}
