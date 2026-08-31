@@ -1,0 +1,40 @@
+"""
+Department-scoping: DEPARTMENT_LEAD is locked to their assigned department
+(no override); ADMIN and MANAGER can view any department, defaulting to the
+first active one, with an optional ?departmentId= override.
+"""
+from __future__ import annotations
+
+import sqlite3
+
+VIEW_ALL_ROLES = ("ADMIN", "MANAGER")
+
+
+def resolve_department(conn: sqlite3.Connection, user: dict,
+                        requested_department_id: str | None = None) -> dict:
+    role = user["role"]
+    department_id = user.get("departmentId")
+
+    if role not in VIEW_ALL_ROLES:
+        if not department_id:
+            raise ValueError("Your account has no department assigned -- contact an admin")
+        row = conn.execute("SELECT id, name FROM Department WHERE id = ?", (department_id,)).fetchone()
+        if row is None:
+            raise ValueError(f"Department not found: {department_id}")
+        return {"departmentId": row["id"], "departmentName": row["name"]}
+
+    if requested_department_id:
+        row = conn.execute("SELECT id, name FROM Department WHERE id = ?", (requested_department_id,)).fetchone()
+        if row is None:
+            raise ValueError(f"Department not found: {requested_department_id}")
+        return {"departmentId": row["id"], "departmentName": row["name"]}
+
+    row = conn.execute("SELECT id, name FROM Department WHERE active = 1 ORDER BY name ASC LIMIT 1").fetchone()
+    if row is None:
+        raise ValueError("No active department found -- create one in Admin first")
+    return {"departmentId": row["id"], "departmentName": row["name"]}
+
+
+def list_departments(conn: sqlite3.Connection) -> list[dict]:
+    rows = conn.execute("SELECT id, name FROM Department WHERE active = 1 ORDER BY name ASC").fetchall()
+    return [dict(r) for r in rows]

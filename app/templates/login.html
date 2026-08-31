@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="login-wrap">
+  <div class="login-brand">
+    <h1 class="login-appname">KITCHEN HYGIENE</h1>
+    <p class="login-tagline">Workstation photo log</p>
+  </div>
+
+  <form method="post" class="card login-card" id="pin-login-form">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+    {% if callback_url %}<input type="hidden" name="callback_url" value="{{ callback_url }}">{% endif %}
+    <input type="hidden" name="pin" id="pin-value">
+
+    {% if error %}<div class="flash flash-error">{{ error }}</div>{% endif %}
+
+    <label class="field">
+      <span>Phone number</span>
+      <input type="tel" name="phone" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" autocomplete="tel" autofocus required>
+    </label>
+
+    <div class="field">
+      <span>PIN</span>
+      <div class="pin-display" id="pin-display">
+        <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+        <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+      </div>
+      <div class="pin-pad">
+        <button type="button" class="pin-key js-pin-key" data-digit="1">1</button>
+        <button type="button" class="pin-key js-pin-key" data-digit="2">2</button>
+        <button type="button" class="pin-key js-pin-key" data-digit="3">3</button>
+        <button type="button" class="pin-key js-pin-key" data-digit="4">4</button>
+        <button type="button" class="pin-key js-pin-key" data-digit="5">5</button>
+        <button type="button" class="pin-key js-pin-key" data-digit="6">6</button>
+        <button type="button" class="pin-key js-pin-key" data-digit="7">7</button>
+        <button type="button" class="pin-key js-pin-key" data-digit="8">8</button>
+        <button type="button" class="pin-key js-pin-key" data-digit="9">9</button>
+        <button type="button" class="pin-key pin-key-empty" tabindex="-1"></button>
+        <button type="button" class="pin-key js-pin-key" data-digit="0">0</button>
+        <button type="button" class="pin-key js-pin-backspace">&#9003;</button>
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-block" style="margin-top:18px;">Sign in</button>
+  </form>
+</div>
+
+<script>
+  (function () {
+    const MAX_PIN = 6;
+    let pin = "";
+    const display = document.getElementById("pin-display");
+    const hiddenInput = document.getElementById("pin-value");
+    const form = document.getElementById("pin-login-form");
+
+    function render() {
+      const dots = display.querySelectorAll(".pin-dot");
+      dots.forEach((dot, i) => dot.classList.toggle("filled", i < pin.length));
+      hiddenInput.value = pin;
+    }
+
+    document.querySelectorAll(".js-pin-key").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        if (pin.length < MAX_PIN) {
+          pin += btn.getAttribute("data-digit");
+          render();
+        }
+      });
+    });
+    document.querySelector(".js-pin-backspace").addEventListener("click", () => {
+      pin = pin.slice(0, -1);
+      render();
+    });
+
+    form.addEventListener("submit", (e) => {
+      if (pin.length < 4) {
+        e.preventDefault();
+        alert("Enter your 4-6 digit PIN.");
+      }
+    });
+  })();
+</script>
+{% endblock %}

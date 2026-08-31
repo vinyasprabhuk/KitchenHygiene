@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Admin - Kitchen Hygiene{% endblock %}
+{% block content %}
+<h1>Admin</h1>
+
+<div class="card">
+  <h2>Add Department</h2>
+  <form method="post" action="{{ url_for('admin.departments_create') }}" class="flex-row" style="align-items:flex-end;">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+    <label class="field" style="width:auto;"><span>Name</span><input type="text" name="name" required style="width:200px;"></label>
+    <button type="submit" class="btn btn-primary">Add</button>
+  </form>
+  <div class="flex-row" style="margin-top:12px;">
+    {% for d in departments %}
+    <form method="post" action="{{ url_for('admin.departments_delete', department_id=d.id) }}">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <span class="badge badge-muted">{{ d.name }} <button type="submit" class="btn-link" style="padding:0 0 0 6px;" title="Delete">&times;</button></span>
+    </form>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card">
+  <h2>Add User</h2>
+  <form method="post" action="{{ url_for('admin.users_create') }}" class="flex-row" style="align-items:flex-end;">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+    <label class="field" style="width:auto;"><span>Name</span><input type="text" name="name" required style="width:160px;"></label>
+    <label class="field" style="width:auto;"><span>Phone</span><input type="tel" name="phone" pattern="[0-9]{10}" maxlength="10" required style="width:140px;"></label>
+    <label class="field" style="width:auto;"><span>PIN</span><input type="text" inputmode="numeric" pattern="[0-9]{4,6}" name="pin" required style="width:100px;"></label>
+    <label class="field" style="width:auto;">
+      <span>Role</span>
+      <select name="role" style="width:auto;">{% for r in roles %}<option value="{{ r }}" {{ 'selected' if r == 'DEPARTMENT_LEAD' else '' }}>{{ r }}</option>{% endfor %}</select>
+    </label>
+    <label class="field" style="width:auto;">
+      <span>Department</span>
+      <select name="departmentId" style="width:auto;">
+        <option value="">(none)</option>
+        {% for d in departments %}<option value="{{ d.id }}">{{ d.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <button type="submit" class="btn btn-primary">Create</button>
+  </form>
+  <p class="text-muted" style="font-size:0.8rem;margin-top:8px;margin-bottom:0;">Department is required for Department Lead accounts, ignored for Admin/Manager.</p>
+</div>
+
+<div class="card">
+  <h2>Users ({{ users | length }})</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Name</th><th>Phone</th><th>Role</th><th>Department</th><th>Reset PIN</th><th></th></tr></thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td><strong>{{ u.name }}</strong></td>
+          <td>{{ u.phone }}</td>
+          <td>{{ u.role }}</td>
+          <td>{{ u.departmentName or '—' }}</td>
+          <td>
+            <form method="post" action="{{ url_for('admin.users_reset_pin', user_id=u.id) }}" class="flex-row" style="gap:4px;">
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+              <input type="text" inputmode="numeric" pattern="[0-9]{4,6}" name="newPin" placeholder="New PIN" style="width:90px;">
+              <button type="submit" class="btn btn-sm">Reset</button>
+            </form>
+          </td>
+          <td>
+            <form method="post" action="{{ url_for('admin.users_deactivate', user_id=u.id) }}">
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-sm">Deactivate</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

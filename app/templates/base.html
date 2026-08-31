@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{% block title %}Kitchen Hygiene{% endblock %}</title>
+  <meta name="theme-color" content="#0b1f44">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+<body>
+  {% if current_user %}
+  <header class="app-nav">
+    <div class="app-nav-inner">
+      <a href="/" class="brand">
+        <span class="brand-name">KITCHEN HYGIENE</span>
+      </a>
+      <nav class="nav-desktop">
+        {% for link in nav_links %}
+          <a href="{{ link.href }}" class="{{ 'active' if request.path.startswith(link.href) else '' }}">{{ link.label }}</a>
+        {% endfor %}
+      </nav>
+      <div class="nav-right">
+        <span class="text-muted" style="font-size:0.8rem;margin-right:8px;">{{ current_user.name }}</span>
+        <form action="/logout" method="post" class="nav-signout">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn-link">Sign out</button>
+        </form>
+      </div>
+    </div>
+  </header>
+  {% endif %}
+
+  <main class="app-main">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-stack">
+          {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
