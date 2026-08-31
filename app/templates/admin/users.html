@@ -88,7 +88,7 @@
     </div>
     <button type="submit" class="btn btn-primary">Create</button>
   </form>
-  <p class="text-muted" style="font-size:0.8rem;margin-top:8px;margin-bottom:0;">Check one or more departments for a Department Lead account (they'll be able to switch between them) &mdash; ignored for Admin/Manager.</p>
+  <p class="text-muted" style="font-size:0.8rem;margin-top:8px;margin-bottom:0;">Required for Department Lead (they'll be able to switch between checked departments). Optional for Manager &mdash; leave unchecked to see every department, or check specific ones to scope them to just those (e.g. two managers covering the same locations on alternating shifts). Ignored for Admin, who always sees everything.</p>
 </div>
 
 <div class="card">
@@ -102,7 +102,27 @@
           <td><strong>{{ u.name }}</strong></td>
           <td>{{ u.username }}</td>
           <td>{{ u.role }}</td>
-          <td>{{ u.departments | map(attribute='name') | join(', ') or '—' }}</td>
+          <td>
+            {{ u.departments | map(attribute='name') | join(', ') or ('All' if u.role != 'DEPARTMENT_LEAD' else '—') }}
+            {% if u.role in assignable_roles %}
+            <details style="display:inline-block;margin-left:4px;">
+              <summary style="display:inline;cursor:pointer;color:var(--primary);font-size:0.78rem;">edit</summary>
+              <form method="post" action="{{ url_for('admin.users_update_departments', user_id=u.id) }}" style="margin-top:8px;padding:8px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--muted);">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                {% set assigned_ids = u.departments | map(attribute='id') | list %}
+                <div style="display:flex;flex-direction:column;gap:2px;margin-bottom:8px;">
+                  {% for d in departments %}
+                  <label style="display:flex;align-items:center;gap:5px;font-size:0.8rem;font-weight:400;margin:0;width:auto;">
+                    <input type="checkbox" name="departmentId" value="{{ d.id }}" style="width:auto;box-shadow:none;" {{ 'checked' if d.id in assigned_ids else '' }}>
+                    {{ d.name }}
+                  </label>
+                  {% endfor %}
+                </div>
+                <button type="submit" class="btn btn-sm">Save</button>
+              </form>
+            </details>
+            {% endif %}
+          </td>
           <td>
             <form method="post" action="{{ url_for('admin.users_reset_pin', user_id=u.id) }}" class="flex-row" style="gap:4px;">
               <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
@@ -122,4 +142,31 @@
     </table>
   </div>
 </div>
+
+{% if deactivated_users %}
+<div class="card">
+  <h2>Deactivated Users ({{ deactivated_users | length }})</h2>
+  <p class="text-muted" style="font-size:0.8rem;margin-top:-6px;">Purge permanently deletes the account. Blocked if they still have photos attributed to them this month.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Name</th><th>Username</th><th>Role</th><th></th></tr></thead>
+      <tbody>
+        {% for u in deactivated_users %}
+        <tr>
+          <td>{{ u.name }}</td>
+          <td>{{ u.username }}</td>
+          <td>{{ u.role }}</td>
+          <td>
+            <form method="post" action="{{ url_for('admin.users_purge', user_id=u.id) }}" onsubmit="return confirm('Permanently delete {{ u.name }} ({{ u.username }})? This cannot be undone.');">
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-sm btn-danger">Purge</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
 {% endblock %}

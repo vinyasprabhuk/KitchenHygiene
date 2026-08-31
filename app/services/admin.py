@@ -10,6 +10,7 @@ from app.services import audit
 
 ROLES = ["ADMIN", "MANAGER", "DEPARTMENT_LEAD"]
 PIN_RE = re.compile(r"^\d{4,6}$")
+DEPARTMENT_ASSIGNABLE_ROLES = ("DEPARTMENT_LEAD", "MANAGER")
 
 
 def create_department(conn: sqlite3.Connection, actor: dict, name: str) -> None:
@@ -62,7 +63,7 @@ def create_user(conn: sqlite3.Connection, actor: dict, name: str, username: str,
         "VALUES (?, ?, ?, ?, ?, NULL, 1, ?, ?)",
         (user_id, name, username, hash_password(pin), role, now_db(), now_db()),
     )
-    if role == "DEPARTMENT_LEAD":
+    if role in DEPARTMENT_ASSIGNABLE_ROLES:
         for dept_id in department_ids:
             conn.execute(
                 "INSERT INTO UserDepartment (userId, departmentId) VALUES (?, ?)", (user_id, dept_id)
@@ -72,9 +73,52 @@ def create_user(conn: sqlite3.Connection, actor: dict, name: str, username: str,
     conn.commit()
 
 
+def set_user_departments(conn: sqlite3.Connection, actor: dict, user_id: str, department_ids: list[str]) -> None:
+    row = conn.execute("SELECT role FROM User WHERE id = ? AND active = 1", (user_id,)).fetchone()
+    if row is None:
+        raise ValueError("User not found")
+    department_ids = [d for d in (department_ids or []) if d]
+    if row["role"] == "DEPARTMENT_LEAD" and not department_ids:
+        raise ValueError("Department Lead accounts must have at least one department assigned")
+    if row["role"] not in DEPARTMENT_ASSIGNABLE_ROLES and department_ids:
+        raise ValueError(f"{row['role']} accounts don't use department assignment")
+
+    conn.execute("DELETE FROM UserDepartment WHERE userId = ?", (user_id,))
+    for dept_id in department_ids:
+        conn.execute("INSERT INTO UserDepartment (userId, departmentId) VALUES (?, ?)", (user_id, dept_id))
+    audit.write(conn, actor, "USER_DEPARTMENTS_UPDATED", "User", user_id, {"departmentIds": department_ids})
+    conn.commit()
+
+
 def deactivate_user(conn: sqlite3.Connection, actor: dict, user_id: str) -> None:
     conn.execute("UPDATE User SET active = 0, updatedAt = ? WHERE id = ?", (now_db(), user_id))
     audit.write(conn, actor, "USER_DEACTIVATED", "User", user_id)
+    conn.commit()
+
+
+def purge_user(conn: sqlite3.Connection, actor: dict, user_id: str) -> None:
+    """Hard-deletes a deactivated user. Gated behind already-deactivated
+    (can't purge a live account by mistake) and blocked if they still have
+    photos attributed to them (WorkstationPhoto.createdById has a foreign
+    key on User -- deleting would either violate it or silently orphan
+    hygiene records, neither of which is acceptable)."""
+    row = conn.execute("SELECT username, active FROM User WHERE id = ?", (user_id,)).fetchone()
+    if row is None:
+        raise ValueError("User not found")
+    if row["active"]:
+        raise ValueError("Deactivate this user before purging")
+
+    photo_count = conn.execute(
+        "SELECT COUNT(*) FROM WorkstationPhoto WHERE createdById = ?", (user_id,)
+    ).fetchone()[0]
+    if photo_count > 0:
+        raise ValueError(
+            f"Can't purge -- {photo_count} photo(s) this month are still attributed to this user"
+        )
+
+    conn.execute("DELETE FROM UserDepartment WHERE userId = ?", (user_id,))
+    conn.execute("DELETE FROM User WHERE id = ?", (user_id,))
+    audit.write(conn, actor, "USER_PURGED", "User", user_id, {"username": row["username"]})
     conn.commit()
 
 

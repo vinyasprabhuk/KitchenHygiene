@@ -4,12 +4,7 @@ from flask import Blueprint, abort, flash, g, redirect, render_template, request
 
 from app.security import login_required
 from app.services import workstation
-from app.services.department_scope import (
-    VIEW_ALL_ROLES,
-    get_user_departments,
-    list_departments,
-    resolve_department,
-)
+from app.services.department_scope import effective_scope, list_departments, resolve_department
 
 bp = Blueprint("workstation", __name__)
 
@@ -18,7 +13,6 @@ bp = Blueprint("workstation", __name__)
 @login_required
 def index():
     conn = g.conn
-    can_view_all = g.user["role"] in VIEW_ALL_ROLES
     can_log = g.user["role"] == "DEPARTMENT_LEAD"
     dept_param = request.args.get("departmentId")
 
@@ -27,16 +21,14 @@ def index():
     except ValueError as e:
         return render_template("workstation/no_department.html", error=str(e), is_admin=g.user["role"] == "ADMIN")
 
-    if can_view_all:
-        departments = list_departments(conn)
-    else:
-        departments = get_user_departments(conn, g.user["id"])
-    show_switcher = can_view_all or len(departments) > 1
+    scope = effective_scope(conn, g.user)
+    departments = list_departments(conn) if scope is None else scope
+    show_switcher = scope is None or len(departments) > 1
     entries = workstation.get_for_department(conn, department["departmentId"])
 
     return render_template(
-        "workstation/index.html", department=department, can_view_all=can_view_all,
-        can_log=can_log, departments=departments, show_switcher=show_switcher, entries=entries,
+        "workstation/index.html", department=department, can_log=can_log,
+        departments=departments, show_switcher=show_switcher, entries=entries,
     )
 
 

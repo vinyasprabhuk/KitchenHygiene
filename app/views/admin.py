@@ -26,13 +26,16 @@ def users():
     ).fetchall()]
     for u in user_rows:
         u["departments"] = get_user_departments(conn, u["id"])
+    deactivated_rows = [dict(r) for r in conn.execute(
+        "SELECT * FROM User WHERE active = 0 ORDER BY name ASC"
+    ).fetchall()]
     dept_rows = conn.execute("SELECT id, name FROM Department WHERE active = 1 ORDER BY name ASC").fetchall()
     existing_names = {d["name"] for d in dept_rows}
     dept_suggestions = [n for n in DEPARTMENT_SUGGESTIONS if n not in existing_names]
     return render_template(
-        "admin/users.html", users=user_rows,
+        "admin/users.html", users=user_rows, deactivated_users=deactivated_rows,
         departments=[dict(r) for r in dept_rows], roles=admin_service.ROLES,
-        dept_suggestions=dept_suggestions,
+        dept_suggestions=dept_suggestions, assignable_roles=admin_service.DEPARTMENT_ASSIGNABLE_ROLES,
     )
 
 
@@ -65,6 +68,28 @@ def users_reset_pin(user_id: str):
     try:
         admin_service.reset_user_pin(g.conn, g.user, user_id, request.form.get("newPin", ""))
         flash("PIN reset.", "success")
+    except ValueError as e:
+        flash(str(e), "error")
+    return redirect(url_for("admin.users"))
+
+
+@bp.route("/users/<user_id>/departments", methods=["POST"])
+@require_role("ADMIN")
+def users_update_departments(user_id: str):
+    try:
+        admin_service.set_user_departments(g.conn, g.user, user_id, request.form.getlist("departmentId"))
+        flash("Departments updated.", "success")
+    except ValueError as e:
+        flash(str(e), "error")
+    return redirect(url_for("admin.users"))
+
+
+@bp.route("/users/<user_id>/purge", methods=["POST"])
+@require_role("ADMIN")
+def users_purge(user_id: str):
+    try:
+        admin_service.purge_user(g.conn, g.user, user_id)
+        flash("User permanently deleted.", "success")
     except ValueError as e:
         flash(str(e), "error")
     return redirect(url_for("admin.users"))
