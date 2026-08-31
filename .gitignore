@@ -4,3 +4,4 @@ __pycache__/
 instance/
 uploads/
 tmp/
+*.log
