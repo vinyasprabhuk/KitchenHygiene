@@ -1,0 +1,18 @@
+---
+deployment:
+  tasks:
+    # NOTE: adjust these two paths to match what cPanel actually shows you --
+    # DEPLOYPATH is the "Application root" from Setup Python App, and PIP is
+    # from that same page's "Enter to the virtual environment" command. Both
+    # follow the same pattern as the existing inventory.mokshamveg.com
+    # deployment (/home/<cpanel-user>/<subdomain>/ and
+    # /home/<cpanel-user>/virtualenv/<subdomain>/<python-version>/bin/pip).
+    #
+    # Each line below runs as its OWN separate shell process (a cPanel
+    # .cpanel.yml quirk) -- env vars set in one line do NOT carry to the
+    # next, so DEPLOYPATH/PIP are re-exported on every line that needs them,
+    # chained with && rather than split across lines.
+    - export DEPLOYPATH=/home/wattsupc/hygiene.mokshamveg.com/ && /bin/cp -R ./* $DEPLOYPATH
+    - export DEPLOYPATH=/home/wattsupc/hygiene.mokshamveg.com/ PIP=/home/wattsupc/virtualenv/hygiene.mokshamveg.com/3.11/bin/pip && $PIP install -q -r $DEPLOYPATH/requirements.txt
+    - export DEPLOYPATH=/home/wattsupc/hygiene.mokshamveg.com/ && cd $DEPLOYPATH && python3 tools/init_db.py
+    - export DEPLOYPATH=/home/wattsupc/hygiene.mokshamveg.com/ && mkdir -p $DEPLOYPATH/tmp && touch $DEPLOYPATH/tmp/restart.txt
