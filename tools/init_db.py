@@ -43,6 +43,12 @@ CREATE TABLE IF NOT EXISTS User (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS User_username_idx ON User(username);
 
+CREATE TABLE IF NOT EXISTS UserDepartment (
+    userId TEXT NOT NULL REFERENCES User(id),
+    departmentId TEXT NOT NULL REFERENCES Department(id),
+    PRIMARY KEY (userId, departmentId)
+);
+
 CREATE TABLE IF NOT EXISTS WorkstationPhoto (
     id TEXT PRIMARY KEY,
     departmentId TEXT NOT NULL REFERENCES Department(id),

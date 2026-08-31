@@ -6,6 +6,7 @@ from app.reference_data import DEPARTMENT_SUGGESTIONS
 from app.security import require_role
 from app.services import admin as admin_service
 from app.services import audit
+from app.services.department_scope import get_user_departments
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -20,16 +21,16 @@ def hub():
 @require_role("ADMIN")
 def users():
     conn = g.conn
-    user_rows = conn.execute(
-        "SELECT u.*, d.name AS departmentName FROM User u "
-        "LEFT JOIN Department d ON d.id = u.departmentId "
-        "WHERE u.active = 1 ORDER BY u.name ASC"
-    ).fetchall()
+    user_rows = [dict(r) for r in conn.execute(
+        "SELECT * FROM User WHERE active = 1 ORDER BY name ASC"
+    ).fetchall()]
+    for u in user_rows:
+        u["departments"] = get_user_departments(conn, u["id"])
     dept_rows = conn.execute("SELECT id, name FROM Department WHERE active = 1 ORDER BY name ASC").fetchall()
     existing_names = {d["name"] for d in dept_rows}
     dept_suggestions = [n for n in DEPARTMENT_SUGGESTIONS if n not in existing_names]
     return render_template(
-        "admin/users.html", users=[dict(r) for r in user_rows],
+        "admin/users.html", users=user_rows,
         departments=[dict(r) for r in dept_rows], roles=admin_service.ROLES,
         dept_suggestions=dept_suggestions,
     )
@@ -42,7 +43,7 @@ def users_create():
     try:
         admin_service.create_user(
             g.conn, g.user, request.form.get("name", ""), request.form.get("username", ""),
-            request.form.get("pin", ""), role, request.form.get("departmentId") or None,
+            request.form.get("pin", ""), role, request.form.getlist("departmentId"),
         )
         flash("User created.", "success")
     except ValueError as e:

@@ -75,16 +75,20 @@
       <span>Role</span>
       <select name="role" style="width:auto;">{% for r in roles %}<option value="{{ r }}" {{ 'selected' if r == 'DEPARTMENT_LEAD' else '' }}>{{ r }}</option>{% endfor %}</select>
     </label>
-    <label class="field" style="width:auto;">
-      <span>Department</span>
-      <select name="departmentId" style="width:auto;">
-        <option value="">(none)</option>
-        {% for d in departments %}<option value="{{ d.id }}">{{ d.name }}</option>{% endfor %}
-      </select>
-    </label>
+    <div class="field" style="width:auto;max-width:260px;">
+      <span>Department(s)</span>
+      <div style="display:flex;flex-wrap:wrap;gap:2px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;background:var(--card);">
+        {% for d in departments %}
+        <label style="display:flex;align-items:center;gap:5px;font-size:0.82rem;font-weight:400;margin:0;width:auto;">
+          <input type="checkbox" name="departmentId" value="{{ d.id }}" style="width:auto;box-shadow:none;">
+          {{ d.name }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
     <button type="submit" class="btn btn-primary">Create</button>
   </form>
-  <p class="text-muted" style="font-size:0.8rem;margin-top:8px;margin-bottom:0;">Department is required for Department Lead accounts, ignored for Admin/Manager.</p>
+  <p class="text-muted" style="font-size:0.8rem;margin-top:8px;margin-bottom:0;">Check one or more departments for a Department Lead account (they'll be able to switch between them) &mdash; ignored for Admin/Manager.</p>
 </div>
 
 <div class="card">
@@ -98,7 +102,7 @@
           <td><strong>{{ u.name }}</strong></td>
           <td>{{ u.username }}</td>
           <td>{{ u.role }}</td>
-          <td>{{ u.departmentName or '—' }}</td>
+          <td>{{ u.departments | map(attribute='name') | join(', ') or '—' }}</td>
           <td>
             <form method="post" action="{{ url_for('admin.users_reset_pin', user_id=u.id) }}" class="flex-row" style="gap:4px;">
               <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">

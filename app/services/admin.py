@@ -27,7 +27,9 @@ def create_department(conn: sqlite3.Connection, actor: dict, name: str) -> None:
 
 def delete_department(conn: sqlite3.Connection, actor: dict, department_id: str) -> None:
     in_use = conn.execute(
-        "SELECT COUNT(*) FROM User WHERE departmentId = ? AND active = 1", (department_id,)
+        "SELECT COUNT(*) FROM UserDepartment ud JOIN User u ON u.id = ud.userId "
+        "WHERE ud.departmentId = ? AND u.active = 1",
+        (department_id,),
     ).fetchone()[0]
     if in_use > 0:
         raise ValueError(f"Can't delete -- {in_use} active user(s) still assigned to this department")
@@ -37,17 +39,18 @@ def delete_department(conn: sqlite3.Connection, actor: dict, department_id: str)
 
 
 def create_user(conn: sqlite3.Connection, actor: dict, name: str, username: str, pin: str,
-                 role: str, department_id: str | None) -> None:
+                 role: str, department_ids: list[str]) -> None:
     name = name.strip()
     username = username.strip()
+    department_ids = [d for d in (department_ids or []) if d]
     if not name or not username:
         raise ValueError("Name and username are required")
     if not PIN_RE.match(pin):
         raise ValueError("PIN must be 4-6 digits")
     if role not in ROLES:
         raise ValueError(f"Invalid role: {role}")
-    if role == "DEPARTMENT_LEAD" and not department_id:
-        raise ValueError("Department Lead accounts must have a department assigned")
+    if role == "DEPARTMENT_LEAD" and not department_ids:
+        raise ValueError("Department Lead accounts must have at least one department assigned")
 
     existing = conn.execute("SELECT id FROM User WHERE username = ? AND active = 1", (username,)).fetchone()
     if existing:
@@ -56,11 +59,16 @@ def create_user(conn: sqlite3.Connection, actor: dict, name: str, username: str,
     user_id = new_id()
     conn.execute(
         "INSERT INTO User (id, name, username, pinHash, role, departmentId, active, createdAt, updatedAt) "
-        "VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)",
-        (user_id, name, username, hash_password(pin), role,
-         department_id if role == "DEPARTMENT_LEAD" else None, now_db(), now_db()),
+        "VALUES (?, ?, ?, ?, ?, NULL, 1, ?, ?)",
+        (user_id, name, username, hash_password(pin), role, now_db(), now_db()),
     )
-    audit.write(conn, actor, "USER_CREATED", "User", user_id, {"username": username, "role": role})
+    if role == "DEPARTMENT_LEAD":
+        for dept_id in department_ids:
+            conn.execute(
+                "INSERT INTO UserDepartment (userId, departmentId) VALUES (?, ?)", (user_id, dept_id)
+            )
+    audit.write(conn, actor, "USER_CREATED", "User", user_id,
+                {"username": username, "role": role, "departmentIds": department_ids})
     conn.commit()
 
 
