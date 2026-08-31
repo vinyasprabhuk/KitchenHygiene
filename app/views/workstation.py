@@ -20,7 +20,7 @@ def index():
     try:
         department = resolve_department(conn, g.user, dept_param)
     except ValueError as e:
-        abort(400, description=str(e))
+        return render_template("workstation/no_department.html", error=str(e), is_admin=g.user["role"] == "ADMIN")
 
     departments = list_departments(conn) if can_view_all else []
     entries = workstation.get_for_department(conn, department["departmentId"])

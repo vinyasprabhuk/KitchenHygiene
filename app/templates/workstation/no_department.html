@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Workstation Photos - Kitchen Hygiene{% endblock %}
+{% block content %}
+<h1>Workstation Photos</h1>
+<div class="card">
+  <p>{{ error }}.</p>
+  {% if is_admin %}
+    <a href="{{ url_for('admin.users') }}" class="btn btn-primary">Go to Admin</a>
+  {% endif %}
+</div>
+{% endblock %}
