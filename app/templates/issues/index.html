@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Issues - Kitchen Hygiene{% endblock %}
+{% block content %}
+<h1>Issues</h1>
+
+{% if issues | length == 0 %}
+<div class="card"><p class="text-muted">No issues yet.</p></div>
+{% else %}
+<div style="display:flex;flex-direction:column;gap:12px;">
+  {% for issue in issues %}
+  <div class="card" style="margin-bottom:0;">
+    <div class="flex-row" style="align-items:flex-start;gap:14px;">
+      <a href="{{ url_for('issues.issue_photo', issue_id=issue.id) }}" target="_blank" rel="noopener">
+        <img src="{{ url_for('issues.issue_photo', issue_id=issue.id) }}" alt="" style="width:96px;height:96px;object-fit:cover;border-radius:8px;border:1px solid var(--border);flex-shrink:0;">
+      </a>
+      <div style="flex:1;min-width:0;">
+        <div class="flex-row" style="justify-content:space-between;align-items:flex-start;">
+          <div>
+            <strong>{{ issue.departmentName }}</strong>
+            <span class="badge {{ 'badge-danger' if issue.status == 'OPEN' else 'badge-success' }}" style="margin-left:6px;">{{ issue.status }}</span>
+          </div>
+          <span class="text-muted" style="font-size:0.75rem;white-space:nowrap;">{{ issue.createdAt[:10] }} {{ issue.createdAt[11:16] }}</span>
+        </div>
+        <p style="margin:6px 0;">{{ issue.comment }}</p>
+        <div class="text-muted" style="font-size:0.78rem;">raised by {{ issue.createdByName }}</div>
+
+        {% if issue.status == 'RESOLVED' %}
+        <div style="margin-top:10px;padding:10px;background:var(--success-bg);border-radius:var(--radius-sm);">
+          <div style="font-size:0.78rem;font-weight:600;color:var(--success);">Resolved by {{ issue.resolvedByName }} &middot; {{ issue.resolvedAt[:10] }} {{ issue.resolvedAt[11:16] }}</div>
+          {% if issue.resolutionComment %}<p style="margin:4px 0 0;font-size:0.85rem;">{{ issue.resolutionComment }}</p>{% endif %}
+        </div>
+        {% elif issue.id in can_resolve_ids %}
+        <details style="margin-top:10px;">
+          <summary style="cursor:pointer;color:var(--primary);font-size:0.82rem;">Resolve this issue</summary>
+          <form method="post" action="{{ url_for('issues.resolve', issue_id=issue.id) }}" style="margin-top:8px;">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <textarea name="resolutionComment" rows="2" placeholder="What did you do to fix this?" style="margin-bottom:8px;"></textarea>
+            <button type="submit" class="btn btn-sm btn-primary">Mark Resolved</button>
+          </form>
+        </details>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

@@ -16,6 +16,7 @@ CAPTURE_ROLES = ("DEPARTMENT_LEAD", "MANAGER")
 def index():
     conn = g.conn
     can_log = g.user["role"] in CAPTURE_ROLES
+    can_create_issue = g.user["role"] == "MANAGER"
     dept_param = request.args.get("departmentId")
 
     try:
@@ -30,6 +31,7 @@ def index():
 
     return render_template(
         "workstation/index.html", department=department, can_log=can_log,
+        can_create_issue=can_create_issue,
         departments=departments, show_switcher=show_switcher, entries=entries,
     )
 

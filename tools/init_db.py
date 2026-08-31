@@ -61,6 +61,21 @@ CREATE TABLE IF NOT EXISTS WorkstationPhoto (
 CREATE INDEX IF NOT EXISTS WorkstationPhoto_department_month_idx
     ON WorkstationPhoto(departmentId, createdAt);
 
+CREATE TABLE IF NOT EXISTS Issue (
+    id TEXT PRIMARY KEY,
+    departmentId TEXT NOT NULL REFERENCES Department(id),
+    photoPath TEXT NOT NULL,
+    photoMimeType TEXT NOT NULL,
+    comment TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'OPEN',
+    createdById TEXT NOT NULL REFERENCES User(id),
+    createdAt TEXT NOT NULL,
+    resolvedById TEXT REFERENCES User(id),
+    resolvedAt TEXT,
+    resolutionComment TEXT
+);
+CREATE INDEX IF NOT EXISTS Issue_department_status_idx ON Issue(departmentId, status);
+
 CREATE TABLE IF NOT EXISTS AuditLog (
     id TEXT PRIMARY KEY,
     userId TEXT,

@@ -20,11 +20,13 @@ def create_app(config_object: str = "config.Config") -> Flask:
     from app.views.files import bp as files_bp
     from app.views.workstation import bp as workstation_bp
     from app.views.admin import bp as admin_bp
+    from app.views.issues import bp as issues_bp
 
     app.register_blueprint(login_bp)
     app.register_blueprint(files_bp)
     app.register_blueprint(workstation_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(issues_bp)
 
     @app.before_request
     def load_user_and_enforce_auth():
@@ -70,19 +72,36 @@ def create_app(config_object: str = "config.Config") -> Flask:
 
     @app.context_processor
     def inject_globals():
+        user = getattr(g, "user", None)
+        conn = getattr(g, "conn", None)
+        open_issue_count = _open_issue_count(conn, user) if (user and conn) else 0
         return {
-            "current_user": getattr(g, "user", None),
+            "current_user": user,
             "csrf_token": get_csrf_token,
-            "nav_links": _nav_links(getattr(g, "user", None)),
+            "nav_links": _nav_links(user),
+            "open_issue_count": open_issue_count,
         }
 
     return app
 
 
+def _open_issue_count(conn, user: dict) -> int:
+    from app.services import issues as issues_service
+    from app.services.department_scope import get_user_departments
+
+    if user["role"] in ("ADMIN", "MANAGER"):
+        return issues_service.open_count_all(conn)
+    dept_ids = [d["id"] for d in get_user_departments(conn, user["id"])]
+    return issues_service.open_count_for_departments(conn, dept_ids)
+
+
 def _nav_links(user: dict | None) -> list[dict]:
     if user is None:
         return []
-    links = [{"href": "/workstation", "label": "Workstation Photos"}]
+    links = [
+        {"href": "/workstation", "label": "Workstation Photos"},
+        {"href": "/issues", "label": "Issues"},
+    ]
     if user["role"] == "ADMIN":
         links.append({"href": "/admin/users", "label": "Admin"})
     return links

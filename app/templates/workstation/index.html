@@ -85,13 +85,16 @@
     </div>
 
     <label class="field">
-      <span>Comment (optional)</span>
-      <textarea name="comment" rows="2" placeholder="e.g. counter needs repainting"></textarea>
+      <span>Comment {{ '(required to create an issue)' if can_create_issue else '(optional)' }}</span>
+      <textarea name="comment" id="capture-comment" rows="2" placeholder="e.g. counter needs repainting"></textarea>
     </label>
 
     <div class="flex-row" style="justify-content:flex-end;margin-top:12px;">
       <button type="button" class="btn btn-sm js-close-dialog">Cancel</button>
-      <button type="submit" class="btn btn-primary">Save Photo</button>
+      <button type="submit" class="btn btn-sm">Save Photo</button>
+      {% if can_create_issue %}
+      <button type="submit" class="btn btn-primary" formaction="{{ url_for('issues.create') }}" id="create-issue-btn">Create Issue</button>
+      {% endif %}
     </div>
   </form>
 </dialog>
@@ -107,6 +110,16 @@
     if (e.target.closest(".js-open-entry")) dialog.showModal();
     else if (e.target.closest(".js-close-dialog")) dialog.close();
   });
+  {% if can_create_issue %}
+  document.getElementById("create-issue-btn").addEventListener("click", (e) => {
+    const comment = document.getElementById("capture-comment");
+    if (!comment.value.trim()) {
+      e.preventDefault();
+      comment.focus();
+      alert("Add a comment describing the issue before creating it.");
+    }
+  });
+  {% endif %}
 </script>
 {% endif %}
 <script>

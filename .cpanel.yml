@@ -2,12 +2,8 @@
 deployment:
   tasks:
     # Repository path IS the live app folder (Setup Python App's
-    # Application root), so no file-copy step is needed -- just install
-    # dependencies, ensure the DB schema exists, and restart Passenger.
-    #
-    # Each line runs as its own separate shell process (a cPanel .cpanel.yml
-    # quirk) -- env vars don't carry between lines, so PIP is re-exported
-    # inline with && rather than on its own line.
-    - export PIP=/home/wattsupc/virtualenv/hygiene.mokshamveg.com/3.11/bin/pip && $PIP install -q -r requirements.txt
-    - python3 tools/init_db.py
-    - mkdir -p tmp && touch tmp/restart.txt
+    # Application root), so no file-copy step is needed. Everything lives
+    # in deploy.sh (single script, uses the venv's absolute python/pip
+    # paths throughout, echoes progress) so a partial failure shows
+    # exactly where it stopped instead of failing silently mid-deploy.
+    - bash deploy.sh

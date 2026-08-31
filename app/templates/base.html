@@ -20,7 +20,10 @@
       </a>
       <nav class="nav-desktop">
         {% for link in nav_links %}
-          <a href="{{ link.href }}" class="{{ 'active' if request.path.startswith(link.href) else '' }}">{{ link.label }}</a>
+          <a href="{{ link.href }}" class="{{ 'active' if request.path.startswith(link.href) else '' }}">
+            {{ link.label }}
+            {% if link.href == '/issues' and open_issue_count %}<span class="badge badge-danger" style="margin-left:4px;">{{ open_issue_count }}</span>{% endif %}
+          </a>
         {% endfor %}
       </nav>
       <div class="nav-right">
