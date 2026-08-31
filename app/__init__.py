@@ -6,7 +6,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from app.db import get_connection
 from app.security import default_route_for_role, get_csrf_token, validate_csrf
 
-PUBLIC_PATHS = ("/login", "/static", "/manifest.json")
+PUBLIC_PATHS = ("/login", "/static", "/manifest.json", "/sw.js")
 
 
 def create_app(config_object: str = "config.Config") -> Flask:
