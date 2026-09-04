@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import re
+
 from flask import Blueprint, abort, flash, g, redirect, render_template, request, url_for
 
+from app.dates import now_db
 from app.security import login_required
 from app.services import workstation
 from app.services.department_scope import effective_scope, list_departments, resolve_department
@@ -9,6 +12,7 @@ from app.services.department_scope import effective_scope, list_departments, res
 bp = Blueprint("workstation", __name__)
 
 CAPTURE_ROLES = ("DEPARTMENT_LEAD", "MANAGER")
+DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
 @bp.route("/workstation")
@@ -24,15 +28,24 @@ def index():
     except ValueError as e:
         return render_template("workstation/no_department.html", error=str(e), is_admin=g.user["role"] == "ADMIN")
 
+    today = now_db()[:10]
+    month_key = workstation.current_month_key()
+    date_param = request.args.get("date")
+    # Only a date within the current month is meaningful -- anything else
+    # has already been purged, so silently fall back to the whole month
+    # rather than showing a confusing "no photos" for a stale link.
+    selected_date = date_param if date_param and DATE_RE.match(date_param) and date_param.startswith(month_key) else None
+
     scope = effective_scope(conn, g.user)
     departments = list_departments(conn) if scope is None else scope
     show_switcher = scope is None or len(departments) > 1
-    entries = workstation.get_for_department(conn, department["departmentId"])
+    entries = workstation.get_for_department(conn, department["departmentId"], selected_date)
 
     return render_template(
         "workstation/index.html", department=department, can_log=can_log,
         can_create_issue=can_create_issue,
         departments=departments, show_switcher=show_switcher, entries=entries,
+        selected_date=selected_date, today=today, month_start=month_key + "-01",
     )
 
 

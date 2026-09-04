@@ -39,13 +39,20 @@ def create_photo(conn: sqlite3.Connection, actor: dict, department_id: str,
     return entry_id
 
 
-def get_for_department(conn: sqlite3.Connection, department_id: str, month_key: str | None = None) -> list[dict]:
-    month_key = month_key or now_db()[:7]
+def current_month_key() -> str:
+    return now_db()[:7]
+
+
+def get_for_department(conn: sqlite3.Connection, department_id: str, date_key: str | None = None) -> list[dict]:
+    """date_key is either a full day ('YYYY-MM-DD', filters to that one day)
+    or left as None (whole current month, the previous default)."""
+    prefix = date_key if date_key else current_month_key()
+    length = len(prefix)
     rows = conn.execute(
-        "SELECT p.*, u.name AS createdByName FROM WorkstationPhoto p "
-        "JOIN User u ON u.id = p.createdById "
-        "WHERE p.departmentId = ? AND substr(p.createdAt, 1, 7) = ? "
-        "ORDER BY p.createdAt DESC",
-        (department_id, month_key),
+        f"SELECT p.*, u.name AS createdByName FROM WorkstationPhoto p "
+        f"JOIN User u ON u.id = p.createdById "
+        f"WHERE p.departmentId = ? AND substr(p.createdAt, 1, {length}) = ? "
+        f"ORDER BY p.createdAt DESC",
+        (department_id, prefix),
     ).fetchall()
     return [dict(r) for r in rows]

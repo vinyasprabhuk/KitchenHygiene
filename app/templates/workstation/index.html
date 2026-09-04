@@ -1,28 +1,36 @@
 {% extends "base.html" %}
 {% block title %}Workstation Photos - Kitchen Hygiene{% endblock %}
 {% block content %}
-<div class="flex-row" style="justify-content:space-between;margin-bottom:16px;">
+<div class="flex-row" style="justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
   <h1 class="mt-0">Workstation Photos &mdash; {{ department.departmentName }}</h1>
-  {% if show_switcher %}
-  <form method="get" class="flex-row" style="display:inline-flex">
-    <select name="departmentId" onchange="this.form.submit()" style="width:auto">
-      {% for d in departments %}
-        <option value="{{ d.id }}" {{ 'selected' if d.id == department.departmentId else '' }}>{{ d.name }}</option>
-      {% endfor %}
-    </select>
-  </form>
-  {% endif %}
+  <div class="flex-row">
+    {% if show_switcher %}
+    <form method="get" class="flex-row" style="display:inline-flex">
+      {% for k, v in request.args.items() %}{% if k != 'departmentId' %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}{% endfor %}
+      <select name="departmentId" onchange="this.form.submit()" style="width:auto">
+        {% for d in departments %}
+          <option value="{{ d.id }}" {{ 'selected' if d.id == department.departmentId else '' }}>{{ d.name }}</option>
+        {% endfor %}
+      </select>
+    </form>
+    {% endif %}
+    <form method="get" class="flex-row" style="display:inline-flex">
+      {% for k, v in request.args.items() %}{% if k != 'date' %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}{% endfor %}
+      <input type="date" name="date" value="{{ selected_date or '' }}" min="{{ month_start }}" max="{{ today }}" onchange="this.form.submit()" style="width:auto">
+      {% if selected_date %}<a href="?{% for k, v in request.args.items() %}{% if k != 'date' %}{{ k }}={{ v }}&{% endif %}{% endfor %}" class="btn btn-sm" title="Back to whole month">&times;</a>{% endif %}
+    </form>
+  </div>
 </div>
 
 <div class="card">
   <div class="flex-row" style="justify-content:space-between;align-items:baseline;">
-    <h3 style="margin-bottom:0;">This month &middot; {{ entries | length }} photo{{ '' if entries | length == 1 else 's' }}</h3>
+    <h3 style="margin-bottom:0;">{{ selected_date or 'This month' }} &middot; {{ entries | length }} photo{{ '' if entries | length == 1 else 's' }}</h3>
     {% if can_log %}<button type="button" class="btn btn-primary btn-sm js-open-entry">&#128247; Capture Photo</button>{% endif %}
   </div>
-  <p class="text-muted" style="font-size:0.8rem;margin-top:-4px;">Kept for the current month only &mdash; last month's photos are cleared automatically once a new one is captured.</p>
+  <p class="text-muted" style="font-size:0.8rem;margin-top:-4px;">Kept for the current month only &mdash; last month's photos are cleared automatically once a new one is captured. Pick a date above to jump to a specific day.</p>
 
   {% if entries | length == 0 %}
-    <p class="text-muted">No photos captured yet this month.</p>
+    <p class="text-muted">{{ 'No photos captured on ' ~ selected_date ~ '.' if selected_date else 'No photos captured yet this month.' }}</p>
   {% else %}
   <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(160px, 1fr));gap:12px;margin-top:12px;">
     {% for entry in entries %}
